@@ -15,7 +15,6 @@ export default class Protocol extends EventEmitter {
 		this.multicastAddress = MULTICAST_SOCKET.DEFAULT_ADDRESS;
 		this.multicastPort = MULTICAST_SOCKET.DEFAULT_PORT;
 		this.persistentNotifications = {};
-		this.pendingSearches = [];
 		this._socket = null;
 	}
 		
@@ -27,10 +26,10 @@ export default class Protocol extends EventEmitter {
 		}
 		
 		const n = new Notification ({}, notification.headers);
-		n.headers.HOST = this.multicastAddress + ':' + this.multicastPort;
+		n.headers.Host = this.multicastAddress + ':' + this.multicastPort;
 		if (!('SERVER' in n.headers)) {
 			const nodeVersion = process.version.substr(1);
-			n.headers.SERVER = 'Node.js/' + nodeVersion + ' SSDP/0.3'
+			n.headers.SERVER = 'Node.js/' + nodeVersion + ' SSDP/1.0.3'
 			 		+ ' ' + PACKAGE.NAME + '/' + PACKAGE.VERSION;
 		}
 		
@@ -59,13 +58,11 @@ export default class Protocol extends EventEmitter {
 			
 			this.persistentNotifications[key] = pn;
 		}
+		
 		if (this.started) {
 			this._send (n.toString());
 		}
 	}
-	
-	search () {}
-	
 	
 	get started () {
 		return this._socket ? true : false;
@@ -93,11 +90,12 @@ export default class Protocol extends EventEmitter {
 		}
 	} // start
 	
-	stop () {
+	async stop () {
 		if (!this.started) {
 			return;
 		}
 		
+		const pending = [];
 		for (const key in this.persistentNotifications) {
 			const pn = this.persistentNotifications[key];
 			if (pn.interval) {
@@ -106,10 +104,12 @@ export default class Protocol extends EventEmitter {
 			}
 			
 			pn.notification.type = TYPE.DEAD;
-			this._send (pn.notification.toString());
+			pending.push (this._send (pn.notification.toString()));
 		}
 		
-		this.pendingSearches = [];
+		try {
+			await Promise.all (pending);
+		} catch (e) { /**/ }
 		
 		this._socket.close ();
 		this._socket = null;
@@ -130,11 +130,16 @@ export default class Protocol extends EventEmitter {
 			message = Buffer.alloc(message.length, message, 'ascii');
 		}
 		
-		this.socket.send (message, 0, message.length,
-			this.multicastPort, this.multicastAddress,
-			(e) => {
-				console.error ('socket error', e);
-			});
+		return new Promise ((resolve, reject) => {
+			this.socket.send (message, 0, message.length,
+				this.multicastPort, this.multicastAddress, (e) => {
+					if (e) {
+						reject (e);
+						return;
+					}
+					resolve ();
+				});
+		});
 	}
 }
 

@@ -78,9 +78,11 @@ export class Notification {
 		if (!('CACHE-CONTROL' in this.headers)) {
 			return NaN;
 		}
-		
+
 		const value = this.headers['CACHE-CONTROL'];
-		const m = value.match (/max-age="?([1-9][0-9]+)/i);
+		
+		const m = value.match (/max-age="?([1-9][0-9]*)/i);
+		
 		if (!m) {
 			return NaN;
 		}
@@ -88,7 +90,8 @@ export class Notification {
 	}
 	
 	set interval (value) {
-		this.headers['CACHE-CONTROL'] = 'max-age=' + Math.round (value / 1000);
+		const seconds = Math.round(value / 1000);
+		this.headers['CACHE-CONTROL'] = 'max-age=' + seconds;
 	}
 }
 

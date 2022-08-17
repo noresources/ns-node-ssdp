@@ -1,9 +1,10 @@
 import { EventEmitter } from 'events';
 import { Notification, TYPE } from './Notification.mjs';
+import { SearchRequest, SEARCH_ALL } from './SearchRequest.mjs';
 import PACKAGE from './Package.mjs';
 import dgram from 'dgram';
 
-const REQUEST_PATTERN = /^([a-z]+)\s(.+?)\sHTTP\/[0-9]+\.[0-9]+$/i;
+const REQUEST_PATTERN = /^([a-z-]+)\s(.+?)\sHTTP\/[0-9]+\.[0-9]+$/i;
 const RESPONSE_PATTERN = /HTTP\/[0-9]+\.[0-9]\s([0-9]+)\s.*/i;
 
 export const MULTICAST_SOCKET = {
@@ -12,7 +13,8 @@ export const MULTICAST_SOCKET = {
 };
 
 export const EVENT = {
-	'NOTIFICATION': 'notification'
+	'NOTIFICATION': 'notification',
+	'SEARCH': 'search'
 };
 	
 export default class Protocol extends EventEmitter {
@@ -135,14 +137,21 @@ export default class Protocol extends EventEmitter {
 		return this._socket;
 	}
 	
-	_send (message) {
+	_send (message, target) {
 		if (typeof (message) == 'string') {
 			message = Buffer.alloc(message.length, message, 'ascii');
 		}
 		
+		let address = this.multicastAddress;
+		let port = this.multicastPort;
+		if (typeof (target) == 'object' && target) {
+			address = target.address || target.host || address;
+			port = target.port || port;
+		}
+		
 		return new Promise ((resolve, reject) => {
 			this.socket.send (message, 0, message.length,
-				this.multicastPort, this.multicastAddress, (e) => {
+				port, address, (e) => {
 					if (e) {
 						reject (e);
 						return;
@@ -163,6 +172,18 @@ export default class Protocol extends EventEmitter {
 				'notification': m,
 				'emitter': emitter
 			});
+		} else if (m instanceof SearchRequest) {
+			for (const key in this.persistentNotifications) {
+				const pn = this.persistentNotifications[key];
+				if ((m.subject == SEARCH_ALL) || (m.subject == pn.notification.subject)) {
+					this._send (pn.notification.toSearchResponse(), emitter);
+				}
+			}
+			
+			this.emit (EVENT.SEARCH, {
+				'search': m,
+				'emitter': emitter
+			});
 		}
 	}
 	
@@ -175,7 +196,7 @@ export default class Protocol extends EventEmitter {
 		/**
 		* @todo Use TOKEN character set for header field name
 		*/
-		const newFieldPattern = /^([a-z][a-z\.-]*):\s*(.*)/i;
+		const newFieldPattern = /^([a-z][a-z.-]*):\s*(.*)/i;
 		lines.forEach ((line) => {
 			const m = line.match (newFieldPattern);
 			if (m) {
@@ -202,14 +223,15 @@ export default class Protocol extends EventEmitter {
 			const method = m[1];
 			if (method.toUpperCase() == 'NOTIFY') {
 				return new Notification ({}, headers);
-			} else {
-				/* @todo */
+			} else if (method.toUpperCase() == 'M-SEARCH') {
+				return new SearchRequest ({}, headers);
 			}
 		} else if ((m = firstLine.match (RESPONSE_PATTERN))) {
-			/** @todo */
+			const statusCode = parseInt (m[1]);
+			if (statusCode == 200) {
+				return new Notification ({}, headers);
+			}
 		}
-		
-		
 	} // parseMessageText
 } // class
 

@@ -42,6 +42,18 @@ export class Notification {
 		return lines.join ('\r\n') + '\r\n\r\n';
 	}
 	
+	toSearchResponse () {
+		const lines = [
+			'HTTP/1.1 200 OK',
+			'S: ' + this.usn,
+			'ST: ' + this.subject,
+			'USN: ' + this.usn
+		];
+		
+		
+		return lines.join ('\r\n') + '\r\n\r\n';
+	}
+	
 	get key () {
 		const lines = [];
 		for (const name of ['NT', 'USN']) {

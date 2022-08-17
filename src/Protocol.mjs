@@ -3,9 +3,16 @@ import { Notification, TYPE } from './Notification.mjs';
 import PACKAGE from './Package.mjs';
 import dgram from 'dgram';
 
+const REQUEST_PATTERN = /^([a-z]+)\s(.+?)\sHTTP\/[0-9]+\.[0-9]+$/i;
+const RESPONSE_PATTERN = /HTTP\/[0-9]+\.[0-9]\s([0-9]+)\s.*/i;
+
 export const MULTICAST_SOCKET = {
 	'DEFAULT_ADDRESS': '239.255.255.250',
 	'DEFAULT_PORT': 1900
+};
+
+export const EVENT = {
+	'NOTIFICATION': 'notification'
 };
 	
 export default class Protocol extends EventEmitter {
@@ -77,7 +84,7 @@ export default class Protocol extends EventEmitter {
 			throw new Error ('Failed to create socket');
 		}
 		
-		this.socket.on ('message', console.debug);
+		this.socket.on ('message', this._processMessage.bind(this));
 		
 		for (const key in this.persistentNotifications) {
 			const pn = this.persistentNotifications[key];
@@ -119,13 +126,16 @@ export default class Protocol extends EventEmitter {
 		if (!this._socket) {
 			this._socket = dgram.createSocket({'type': 'udp4',
 				'reuseAddr': true });
+			this._socket.on ('listening', () => {
+				this._socket.addMembership(this.multicastAddress);
+			});
+			this._socket.bind (this.multicastPort);
 		}
 		
 		return this._socket;
 	}
 	
 	_send (message) {
-		console.debug ('SEND', message.toString());
 		if (typeof (message) == 'string') {
 			message = Buffer.alloc(message.length, message, 'ascii');
 		}
@@ -141,6 +151,66 @@ export default class Protocol extends EventEmitter {
 				});
 		});
 	}
-}
+	
+	_processMessage (message, emitter) {
+		const m = this._parseMessageText (message.toString());
+		if (m instanceof Notification) {
+			const key = m.key;
+			if (key in this.persistentNotifications) {
+				return;
+			}
+			this.emit (EVENT.NOTIFICATION, {
+				'notification': m,
+				'emitter': emitter
+			});
+		}
+	}
+	
+	_parseMessageText (text) {
+		const lines = text.split ('\r\n');
+		const firstLine = lines.shift();
+		const headers = {};
+		let name = null;
+		let value = '';
+		/**
+		* @todo Use TOKEN character set for header field name
+		*/
+		const newFieldPattern = /^([a-z][a-z\.-]*):\s*(.*)/i;
+		lines.forEach ((line) => {
+			const m = line.match (newFieldPattern);
+			if (m) {
+				if (name) {
+					headers[name] = value;
+				}
+				
+				name = m[1];
+				value = m[2];
+			} else if (name && line.match(/^[ \t]/)) {
+				value = value + line;
+			} else {
+				name = null;
+				value = '';
+			}
+		}); // each line
+		
+		if (name) {
+			headers[name] = value;
+		}
+		
+		let m;
+		if ((m = firstLine.match (REQUEST_PATTERN))) {
+			const method = m[1];
+			if (method.toUpperCase() == 'NOTIFY') {
+				return new Notification ({}, headers);
+			} else {
+				/* @todo */
+			}
+		} else if ((m = firstLine.match (RESPONSE_PATTERN))) {
+			/** @todo */
+		}
+		
+		
+	} // parseMessageText
+} // class
 
 export { Protocol };

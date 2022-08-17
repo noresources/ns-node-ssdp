@@ -1,3 +1,9 @@
+/*
+ * Copyright © 2022 by Renaud Guillard (dev@nore.fr)
+ * Distributed under the terms of the MIT License, see LICENSE
+ */
+ 
+'use strict';
 import { EventEmitter } from 'events';
 import { Notification, TYPE } from './Notification.mjs';
 import { SearchRequest, SEARCH_ALL } from './SearchRequest.mjs';
@@ -16,7 +22,10 @@ export const EVENT = {
 	'NOTIFICATION': 'notification',
 	'SEARCH': 'search'
 };
-	
+
+/**
+* SSDP protocol implementation
+*/
 export default class Protocol extends EventEmitter {
 	constructor () {
 		super();
@@ -27,6 +36,11 @@ export default class Protocol extends EventEmitter {
 		this._socket = null;
 	}
 		
+	/**
+	* Send NOTIFY message
+	* @param {Notification} notification - Notification to send
+	* @param {boolean} persist - If true, the notification will be re-send automatically according notification interval value
+	*/
 	notify (notification, persist) {
 		const key = notification.key;
 		if (notification.type == TYPE.DEAD && (key in this.persistentNotifications)) {
@@ -73,10 +87,17 @@ export default class Protocol extends EventEmitter {
 		}
 	}
 	
+	/**
+	* Indicates if the protocol is started
+	* @returns {boolean}
+	*/
 	get started () {
 		return this._socket ? true : false;
 	}
 	
+	/**
+	* Starts listening SSDP message and emitting notifications
+	*/
 	start () {
 		if (this.started) {
 			throw new Error ('Already started');
@@ -99,6 +120,10 @@ export default class Protocol extends EventEmitter {
 		}
 	} // start
 	
+	/**
+	* Stop listening SSDP message
+	* and notify control points that registered service are no more available
+	*/
 	async stop () {
 		if (!this.started) {
 			return;
@@ -124,6 +149,9 @@ export default class Protocol extends EventEmitter {
 		this._socket = null;
 	}
 	
+	/**
+	* @private
+	*/
 	get socket () {
 		if (!this._socket) {
 			this._socket = dgram.createSocket({'type': 'udp4',
@@ -137,6 +165,9 @@ export default class Protocol extends EventEmitter {
 		return this._socket;
 	}
 	
+	/**
+	* @private
+	*/
 	_send (message, target) {
 		if (typeof (message) == 'string') {
 			message = Buffer.alloc(message.length, message, 'ascii');
@@ -161,6 +192,9 @@ export default class Protocol extends EventEmitter {
 		});
 	}
 	
+	/**
+	* @private
+	*/
 	_processMessage (message, emitter) {
 		const m = this._parseMessageText (message.toString());
 		if (m instanceof Notification) {
@@ -187,6 +221,9 @@ export default class Protocol extends EventEmitter {
 		}
 	}
 	
+	/**
+	* @private
+	*/
 	_parseMessageText (text) {
 		const lines = text.split ('\r\n');
 		const firstLine = lines.shift();

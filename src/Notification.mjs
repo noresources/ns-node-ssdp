@@ -1,3 +1,8 @@
+/*
+ * Copyright © 2022 by Renaud Guillard (dev@nore.fr)
+ * Distributed under the terms of the MIT License, see LICENSE
+ */
+ 
 'use strict';
 import HeaderMapHandler from './HeaderMapHandler.mjs';
 
@@ -6,7 +11,14 @@ export const TYPE = {
 	'DEAD': 'ssdp:byebye'
 };
 
+/**
+* Notification message descriptor
+*/
 export class Notification {
+	/**
+	* @param {Object} properties - Notification properties
+	* @param {Object} headers - Custom message headers
+	*/
 	constructor (properties, headers) {
 
 		if (!(typeof (properties) == 'object' && properties)) {
@@ -33,6 +45,10 @@ export class Notification {
 		
 	} // constructor
 	
+	/**
+	* Get SSDP message text
+	* @returns {string}
+	*/
 	toString () {
 		const lines = ['NOTIFY * HTTP/1.1'];
 		for (const k in this.headers) {
@@ -42,6 +58,10 @@ export class Notification {
 		return lines.join ('\r\n') + '\r\n\r\n';
 	}
 	
+	/**
+	* Get the m-SEARCH HTTP response
+	* @returns {string}
+	*/
 	toSearchResponse () {
 		const lines = [
 			'HTTP/1.1 200 OK',
@@ -61,31 +81,58 @@ export class Notification {
 		}
 		return lines.join ('|');
 	}
-		
+
+	/**
+	* Get USN HTTP header field
+	*/
 	get usn () {
 		return this.headers.USN;
 	}
 	
+	/**
+	* Set USN HTTP header field
+	* @param {string} value - USN header value
+	*/
 	set usn (value) {
 		this.headers.USN = value;
 	}
 	
+	/**
+	* Get notification subject (HT HTTP header)
+	* @returns {string}
+	*/
 	get subject () {
 		return this.headers.NT;
 	}
 	
+	/**
+	* Set Notification subject (HT HTTP header)
+	* @param {string} value - NT HTTP header value
+	*/
 	set subject (value) {
 		this.headers.NT = value;
 	}
 	
+	/**
+	* Get Notification type (HTS HTTP header)
+	* @returns {string}
+	*/
 	get type () {
 		return this.headers.NTS;
 	}
-	
+
+	/**
+* Set Notification type (HTS HTTP header)
+* @param {string} value - NTS HTTP header value
+*/
 	set type (value) {
 		this.headers.NTS = value;
 	}
 	
+	/**
+	* Get notification timeout from Cache-Control HTTP header
+	* @returns {number} Notification timeout in milliseconds or NaN
+	*/
 	get interval () {
 		if (!('CACHE-CONTROL' in this.headers)) {
 			return NaN;
@@ -101,6 +148,10 @@ export class Notification {
 		return parseInt(m[1]) * 1000;
 	}
 	
+	/**
+	* Set Cache-Control max-age value
+	* @param {number} value - Notification timeout in milliseconds
+	*/
 	set interval (value) {
 		const seconds = Math.round(value / 1000);
 		this.headers['CACHE-CONTROL'] = 'max-age=' + seconds;

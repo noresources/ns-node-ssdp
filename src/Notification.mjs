@@ -31,16 +31,19 @@ export class Notification {
 			
 		this.headers = new Proxy (headers, HeaderMapHandler);
 		
-		properties.type = properties.type || TYPE.ALIVE;
-		properties.interval = properties.interval || 30000;
-		
 		for (const k of ['type', 'subject', 'usn', 'interval']) {
 			if (!(k in properties)) {
 				continue;
 			}
-			if (!this[k]) {
-				this[k] = properties[k];
-			}
+			
+			this[k] = properties[k];
+		}
+		
+		if (typeof(this.type) == 'undefined') {
+			this.type = TYPE.ALIVE;
+		}
+		if (!('CACHE-CONTROL' in this.headers)) {
+			this.interval = 30000;
 		}
 		
 	} // constructor

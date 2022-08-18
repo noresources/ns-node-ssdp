@@ -293,6 +293,9 @@ export default class Protocol extends EventEmitter {
 			} else if (name && line.match(/^[ \t]/)) {
 				value = value + line;
 			} else {
+				if (name) {
+					headers[name] = value;
+				}
 				name = null;
 				value = '';
 			}

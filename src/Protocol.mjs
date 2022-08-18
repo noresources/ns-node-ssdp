@@ -52,6 +52,7 @@ export default class Protocol extends EventEmitter {
 		}
 		
 		const n = new Notification ({}, notification.headers);
+		
 		n.headers.Host = this.multicastAddress + ':' + this.multicastPort;
 		if (!('SERVER' in n.headers)) {
 			const nodeVersion = process.version.substr(1);
@@ -86,8 +87,10 @@ export default class Protocol extends EventEmitter {
 		}
 		
 		if (this.started) {
-			this._send (n.toString());
+			return this._send (n.toString());
 		}
+		
+		return Promise.resolve (null);
 	}
 	
 	/**
@@ -162,8 +165,10 @@ export default class Protocol extends EventEmitter {
 				pn.interval = null;
 			}
 			
-			pn.notification.type = TYPE.DEAD;
-			pending.push (this._send (pn.notification.toString()));
+			const bye = new Notification ({
+				'type': TYPE.DEAD
+			}, pn.notification.headers);
+			pending.push (this._send (bye));
 		}
 		
 		try {

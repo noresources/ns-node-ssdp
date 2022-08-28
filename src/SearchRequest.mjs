@@ -55,6 +55,7 @@ export class SearchRequest {
 	
 	/**
 	* Get SSDP message text
+	*
 	* @returns {string}
 	*/
 	toString () {
@@ -68,6 +69,7 @@ export class SearchRequest {
 	
 	/**
 	* Get search request subject (ST HTTP header field)
+	*
 	* @returns {string}
 	*/
 	get subject () {
@@ -75,6 +77,8 @@ export class SearchRequest {
 	}
 
 	/**
+	* Set search request subject (ST HTTP header field)
+	*
 	* @param {string} value - ST header field value
 	*/
 	set subject (value) {

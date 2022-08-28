@@ -1,7 +1,7 @@
 # ns-node-ssdp
 SSDP protocol implementation for Node.js
 
-## Usabe examples
+## Usable examples
 
 ### Advertise
 

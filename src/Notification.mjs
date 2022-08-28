@@ -6,6 +6,10 @@
 'use strict';
 import HeaderMapHandler from './HeaderMapHandler.mjs';
 
+/**
+* Notification type.
+* Corresponds to the NTS header field values.
+*/
 export const TYPE = {
 	'ALIVE': 'ssdp:alive',
 	'DEAD': 'ssdp:byebye'
@@ -50,6 +54,7 @@ export class Notification {
 	
 	/**
 	* Get SSDP message text
+	*
 	* @returns {string}
 	*/
 	toString () {
@@ -61,6 +66,11 @@ export class Notification {
 		return lines.join ('\r\n') + '\r\n\r\n';
 	}
 	
+	/**
+	* For internal use
+	*
+	* @returns {string}
+	*/
 	get key () {
 		const lines = [];
 		for (const name of ['NT', 'USN']) {
@@ -71,6 +81,8 @@ export class Notification {
 
 	/**
 	* Get USN HTTP header field
+	*
+	* @returns {string}
 	*/
 	get usn () {
 		return this.headers.USN;
@@ -78,6 +90,7 @@ export class Notification {
 	
 	/**
 	* Set USN HTTP header field
+	*
 	* @param {string} value - USN header value
 	*/
 	set usn (value) {
@@ -86,6 +99,7 @@ export class Notification {
 	
 	/**
 	* Get notification subject (HT HTTP header)
+	*
 	* @returns {string}
 	*/
 	get subject () {
@@ -94,6 +108,7 @@ export class Notification {
 	
 	/**
 	* Set Notification subject (HT HTTP header)
+	*
 	* @param {string} value - NT HTTP header value
 	*/
 	set subject (value) {
@@ -102,6 +117,7 @@ export class Notification {
 	
 	/**
 	* Get Notification type (HTS HTTP header)
+	*
 	* @returns {string}
 	*/
 	get type () {
@@ -110,6 +126,7 @@ export class Notification {
 
 	/**
 * Set Notification type (HTS HTTP header)
+*
 * @param {string} value - NTS HTTP header value
 */
 	set type (value) {
@@ -118,6 +135,7 @@ export class Notification {
 	
 	/**
 	* Get notification timeout from Cache-Control HTTP header
+	*
 	* @returns {number} Notification timeout in milliseconds or NaN
 	*/
 	get interval () {
@@ -137,6 +155,7 @@ export class Notification {
 	
 	/**
 	* Set Cache-Control max-age value
+	*
 	* @param {number} value - Notification timeout in milliseconds
 	*/
 	set interval (value) {

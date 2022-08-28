@@ -15,11 +15,17 @@ import dgram from 'dgram';
 const REQUEST_PATTERN = /^([a-z-]+)\s(.+?)\sHTTP\/[0-9]+\.[0-9]+$/i;
 const RESPONSE_PATTERN = /HTTP\/[0-9]+\.[0-9]\s([0-9]+)\s.*/i;
 
+/**
+* Default SSDP multicast address and port
+*/
 export const MULTICAST_SOCKET = {
 	'DEFAULT_ADDRESS': '239.255.255.250',
 	'DEFAULT_PORT': 1900
 };
 
+/**
+* SSDP protocol event type names
+*/
 export const EVENT = {
 	'NOTIFICATION': 'notification',
 	'SEARCH': 'search'
@@ -29,11 +35,16 @@ export const EVENT = {
 * SSDP protocol implementation
 */
 export default class Protocol extends EventEmitter {
-	constructor () {
+	/**
+	* @param {string} address - SSDP multicast address
+	* @param {integer} port - SSDP multicast port
+	*/
+	constructor (address, port) {
 		super();
 		
-		this.multicastAddress = MULTICAST_SOCKET.DEFAULT_ADDRESS;
-		this.multicastPort = MULTICAST_SOCKET.DEFAULT_PORT;
+		this.multicastAddress = address || MULTICAST_SOCKET.DEFAULT_ADDRESS;
+		this.multicastPort = port || MULTICAST_SOCKET.DEFAULT_PORT;
+		
 		this.persistentNotifications = {};
 		this.pendingSearches = [];
 		this._socket = null;
@@ -41,6 +52,7 @@ export default class Protocol extends EventEmitter {
 		
 	/**
 	* Send NOTIFY message
+	*
 	* @param {Notification} notification - Notification to send
 	* @param {boolean} persist - If true, the notification will be re-send automatically according notification interval value
 	*/
@@ -95,7 +107,8 @@ export default class Protocol extends EventEmitter {
 	
 	/**
 * Send a M-SEARCH request
-* @param {SearchRequest, string} what - Search request or simply subject of the search
+*
+* @param {SearchRequest|string} what - Search request or simply subject of the search
 	*/
 	search (what) {
 		if (typeof (what) == 'string') {
@@ -112,6 +125,7 @@ export default class Protocol extends EventEmitter {
 	
 	/**
 	* Indicates if the protocol is started
+	*
 	* @returns {boolean}
 	*/
 	get started () {
@@ -119,7 +133,7 @@ export default class Protocol extends EventEmitter {
 	}
 	
 	/**
-	* Starts listening SSDP message and emitting notifications
+	* Start listening SSDP message and emitting notifications
 	*/
 	start () {
 		if (this.started) {

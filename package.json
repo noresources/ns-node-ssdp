@@ -1,10 +1,11 @@
 {
 	"name": "ns-node-ssdp", 
-	"version": "0.1.1", 
+	"version": "0.1.2", 
 	"description": "SSDP protocol implementation", 
 	"main": "index.mjs", 
 	"scripts": {
-		"test": "tape tests/tape/*.mjs"
+		"test": "tape tests/tape/*.mjs", 
+		"doc": "jsdoc --recurse -c resources/jsdoc/configuration.json --destination doc src/"
 	}, 
 	"keywords": [
 		"SSDP"

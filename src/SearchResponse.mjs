@@ -44,6 +44,7 @@ export class SearchResponse {
 	
 	/**
 	* Get SSDP message text
+	*
 	* @returns {string}
 	*/
 	toString () {
@@ -57,6 +58,7 @@ export class SearchResponse {
 	
 	/**
 	* Get search response subject (ST HTTP header field)
+	*
 	* @returns {string}
 	*/
 	get subject () {
@@ -72,6 +74,7 @@ export class SearchResponse {
 	
 	/**
 	* Get service USN (S and USN HTTP header field)
+	*
 	* @returns {string}
 	*/
 	get usn () {

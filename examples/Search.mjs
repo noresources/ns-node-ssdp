@@ -1,5 +1,5 @@
 import { Protocol } from '../index.mjs';
-const SUBJECT = 'urn:schemas-depinxi-be:service:http:1';
+const SUBJECT = 'urn:schemas-nore-fr:service:http:1';
 
 const p = new Protocol();
 

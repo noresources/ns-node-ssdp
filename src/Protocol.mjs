@@ -153,7 +153,7 @@ export class Protocol extends EventEmitter {
 	
 	/**
 	* Multicast socket IPv4 address
-	* 
+	*
 	* @returns {string} Multicast address
 	*/
 	get multicastAddress () {
@@ -179,7 +179,7 @@ export class Protocol extends EventEmitter {
 	
 	/**
 	 * Multicast socket port
-	 *  
+	 *
 	 * @returns {number} Multicast port
 	 */
 	get multicastPort() {
@@ -188,7 +188,7 @@ export class Protocol extends EventEmitter {
 	
 	/**
 	 * Set multicast socket port
-	 * 
+	 *
 	 * @param {number} value - Multicast socket port
 	 */
 	set multicastPort (value) {

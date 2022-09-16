@@ -1,23 +1,24 @@
 {
-	"name": "ns-node-ssdp",
-	"version": "0.1.2",
-	"description": "SSDP protocol implementation",
-	"main": "index.mjs",
+	"name": "ns-node-ssdp", 
+	"version": "0.2.0", 
+	"description": "SSDP protocol implementation", 
+	"main": "index.mjs", 
 	"scripts": {
-		"test": "tape tests/tape/*.mjs",
-		"doc": "jsdoc --recurse -c resources/jsdoc/configuration.json --destination doc src/",
-		"lint": "eslint -c resources/eslint/configuration.json --fix src/*.mjs"
-	},
+		"test": "tape tests/tape/*.mjs", 
+		"doc": "jsdoc --recurse -c resources/jsdoc/configuration.json --destination doc src/", 
+		"lint": "eslint -c resources/eslint/configuration.json --fix src/*.mjs", 
+		"update-package-info": "node tools/update-package-info.mjs "
+	}, 
 	"keywords": [
 		"SSDP"
-	],
-	"author": "Renaud Guillard",
-	"license": "MIT",
-	"type": "module",
-	"directories": "src/",
+	], 
+	"author": "Renaud Guillard", 
+	"license": "MIT", 
+	"type": "module", 
+	"directories": "src/", 
 	"devDependencies": {
 		"tape": "^5.6.0"
-	},
+	}, 
 	"dependencies": {
 		"ip": "^1.1.8"
 	}

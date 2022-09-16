@@ -11,6 +11,7 @@ import { SearchResponse } from './SearchResponse.mjs';
 
 import PACKAGE from './Package.mjs';
 import dgram from 'dgram';
+import ip from 'ip';
 
 const REQUEST_PATTERN = /^([a-z-]+)\s(.+?)\sHTTP\/[0-9]+\.[0-9]+$/i;
 const RESPONSE_PATTERN = /HTTP\/[0-9]+\.[0-9]\s([0-9]+)\s.*/i;
@@ -19,7 +20,9 @@ const RESPONSE_PATTERN = /HTTP\/[0-9]+\.[0-9]\s([0-9]+)\s.*/i;
 * Default SSDP multicast address and port
 */
 export const MULTICAST_SOCKET = {
+	/** Default SSDP multicast address */
 	'DEFAULT_ADDRESS': '239.255.255.250',
+	/** Default SSDP multicast port */
 	'DEFAULT_PORT': 1900
 };
 
@@ -33,23 +36,29 @@ export const EVENT = {
 
 /**
 * SSDP protocol implementation
+*
+* @property {string} signature - Default SERVER and USER-AGENT header field values.
 */
-export default class Protocol extends EventEmitter {
+export class Protocol extends EventEmitter {
 	/**
 	* @param {string} address - SSDP multicast address
 	* @param {integer} port - SSDP multicast port
 	*/
 	constructor (address, port) {
 		super();
+
+		const nodeVersion = process.version.substr(1);
+		this.signature = 'Node.js/' + nodeVersion + ' SSDP/1.0.3'
+			 		+ ' ' + PACKAGE.NAME + '/' + PACKAGE.VERSION;
 		
 		this.multicastAddress = address || MULTICAST_SOCKET.DEFAULT_ADDRESS;
 		this.multicastPort = port || MULTICAST_SOCKET.DEFAULT_PORT;
 		
-		this.persistentNotifications = {};
-		this.pendingSearches = [];
+		this._persistentNotifications = {};
+		this._pendingSearches = [];
 		this._socket = null;
 	}
-		
+	
 	/**
 	* Send NOTIFY message
 	*
@@ -58,19 +67,12 @@ export default class Protocol extends EventEmitter {
 	*/
 	notify (notification, persist) {
 		const key = notification.key;
-		if (notification.type == TYPE.DEAD && (key in this.persistentNotifications)) {
-			clearInterval (this.persistentNotifications[key].interval);
-			delete this.persistentNotifications[key];
+		if (notification.type == TYPE.DEAD && (key in this._persistentNotifications)) {
+			clearInterval (this._persistentNotifications[key].interval);
+			delete this._persistentNotifications[key];
 		}
 		
-		const n = new Notification ({}, notification.headers);
-		
-		n.headers.Host = this.multicastAddress + ':' + this.multicastPort;
-		if (!('SERVER' in n.headers)) {
-			const nodeVersion = process.version.substr(1);
-			n.headers.SERVER = 'Node.js/' + nodeVersion + ' SSDP/1.0.3'
-			 		+ ' ' + PACKAGE.NAME + '/' + PACKAGE.VERSION;
-		}
+		const n = this.createNotification ({}, notification.headers);
 		
 		if (persist && n.type == TYPE.ALIVE) {
 			const interval = n.interval;
@@ -78,9 +80,9 @@ export default class Protocol extends EventEmitter {
 				n.interval = 30000;
 			}
 			
-			if (key in this.persistentNotifications) {
-				clearInterval (this.persistentNotifications[key].interval);
-				this.persistentNotifications[key].interval = null;
+			if (key in this._persistentNotifications) {
+				clearInterval (this._persistentNotifications[key].interval);
+				this._persistentNotifications[key].interval = null;
 			}
 			
 			const message = n.toString();
@@ -95,7 +97,7 @@ export default class Protocol extends EventEmitter {
 				}, interval - (interval * 0.1));
 			}
 			
-			this.persistentNotifications[key] = pn;
+			this._persistentNotifications[key] = pn;
 		}
 		
 		if (this.started) {
@@ -106,22 +108,101 @@ export default class Protocol extends EventEmitter {
 	}
 	
 	/**
-* Send a M-SEARCH request
-*
-* @param {SearchRequest|string} what - Search request or simply subject of the search
+	* Send a M-SEARCH request
+	*
+	* @param {SearchRequest|string} what - Search request or simply subject of the search
 	*/
 	search (what) {
+		let s;
 		if (typeof (what) == 'string') {
-			what = new SearchRequest (what);
+			s = this.createSearchRequest (what);
+		} else {
+			s = this.createSearchRequest ({}, what.headers);
 		}
 		
 		if (!this.started) {
-			this.pendingSearches.push (what);
-			return;
+			this._pendingSearches.push (s);
+			return Promise.resulve(null);
 		}
 		
-		this._send (what.toString ());
+		return this._send (s.toString ());
 	}
+	
+	/**
+	* Create a new Notification to be used with this protocol
+	*
+	* @param {Array} arguments - Notification constructor arguments.
+	* @returns {Notification}
+	*/
+	createNotification () {
+		const n = new Notification (...arguments);
+		return this._populateNotification (n);
+	}
+	
+	/**
+	 * Create a new search request
+	 *
+	 * @param {Array} arguments - SearchRequest constructor arguments.
+	 *
+	 * @returns {SearchRequest}
+	 */
+	createSearchRequest () {
+		const s = new SearchRequest (...arguments);
+		return this._populateSearchRequest (s);
+	}
+	
+	/**
+	* Multicast socket IPv4 address
+	* 
+	* @returns {string} Multicast address
+	*/
+	get multicastAddress () {
+		return this._multicastAddress;
+	}
+	
+	/**
+	* Set multicast socket IPv4 address
+	*
+	* @param {string} value - Multicast socket IPv4 address string
+	*/
+	set multicastAddress (value) {
+		if (this.started) {
+			throw new Error ('Multicast address cannot be changed while running');
+		}
+		
+		if (!ip.isV4Format (value)) {
+			throw new Error ('Invalid IPv4 address');
+		}
+		
+		this._multicastAddress = value;
+	}
+	
+	/**
+	 * Multicast socket port
+	 *  
+	 * @returns {number} Multicast port
+	 */
+	get multicastPort() {
+		return this._multicastPort;
+	}
+	
+	/**
+	 * Set multicast socket port
+	 * 
+	 * @param {number} value - Multicast socket port
+	 */
+	set multicastPort (value) {
+		if (this.started) {
+			throw new Error ('Multicast port cannot be changed while running');
+		}
+		
+		if (!Number.isInteger (value)) {
+			throw new TypeError ('Invalid port number');
+		}
+			
+		this._multicastPort = value;
+	}
+	
 	
 	/**
 	* Indicates if the protocol is started
@@ -133,7 +214,7 @@ export default class Protocol extends EventEmitter {
 	}
 	
 	/**
-	* Start listening SSDP message and emitting notifications
+	* Start listening SSDP message and emit pending messages.
 	*/
 	start () {
 		if (this.started) {
@@ -146,13 +227,13 @@ export default class Protocol extends EventEmitter {
 		
 		this.socket.on ('message', this._processMessage.bind(this));
 
-		while (this.pendingSearches.length) {
-			const request = this.pendingSearches.shift();
+		while (this._pendingSearches.length) {
+			const request = this._pendingSearches.shift();
 			this._send (request.toString ());
 		}
 		
-		for (const key in this.persistentNotifications) {
-			const pn = this.persistentNotifications[key];
+		for (const key in this._persistentNotifications) {
+			const pn = this._persistentNotifications[key];
 			const interval = pn.notification.interval;
 			pn.interval = setInterval (() => {
 				this._send (pn.message);
@@ -172,8 +253,8 @@ export default class Protocol extends EventEmitter {
 		}
 		
 		const pending = [];
-		for (const key in this.persistentNotifications) {
-			const pn = this.persistentNotifications[key];
+		for (const key in this._persistentNotifications) {
+			const pn = this._persistentNotifications[key];
 			if (pn.interval) {
 				clearInterval (pn.interval);
 				pn.interval = null;
@@ -201,9 +282,9 @@ export default class Protocol extends EventEmitter {
 			this._socket = dgram.createSocket({'type': 'udp4',
 				'reuseAddr': true });
 			this._socket.on ('listening', () => {
-				this._socket.addMembership(this.multicastAddress);
+				this._socket.addMembership(this._multicastAddress);
 			});
-			this._socket.bind (this.multicastPort);
+			this._socket.bind (this._multicastPort);
 		}
 		
 		return this._socket;
@@ -217,8 +298,8 @@ export default class Protocol extends EventEmitter {
 			message = Buffer.alloc(message.length, message, 'ascii');
 		}
 		
-		let address = this.multicastAddress;
-		let port = this.multicastPort;
+		let address = this._multicastAddress;
+		let port = this._multicastPort;
 		if (typeof (target) == 'object' && target) {
 			address = target.address || target.host || address;
 			port = target.port || port;
@@ -240,7 +321,7 @@ export default class Protocol extends EventEmitter {
 	* @private
 	*/
 	_processMessage (message, emitter) {
-		const m = this._parseMessageText (message.toString());
+		const m = this.__parseMessageText (message.toString());
 		if (m instanceof Notification
 				|| m instanceof SearchResponse) {
 			let n = m;
@@ -258,7 +339,7 @@ export default class Protocol extends EventEmitter {
 			/* @todo Optional skip */
 			
 			const key = n.key;
-			if (key in this.persistentNotifications) {
+			if (key in this._persistentNotifications) {
 				return;
 			}
 
@@ -267,8 +348,8 @@ export default class Protocol extends EventEmitter {
 				'emitter': emitter
 			});
 		} else if (m instanceof SearchRequest) {
-			for (const key in this.persistentNotifications) {
-				const pn = this.persistentNotifications[key];
+			for (const key in this._persistentNotifications) {
+				const pn = this._persistentNotifications[key];
 				if ((m.subject == SEARCH_ALL) || (m.subject == pn.notification.subject)) {
 					const response = new SearchResponse({
 						'subject': pn.notification.subject,
@@ -290,7 +371,7 @@ export default class Protocol extends EventEmitter {
 	/**
 	* @private
 	*/
-	_parseMessageText (text) {
+	__parseMessageText (text) {
 		const lines = text.split ('\r\n');
 		const firstLine = lines.shift();
 		const headers = {};
@@ -339,6 +420,34 @@ export default class Protocol extends EventEmitter {
 			}
 		}
 	} // parseMessageText
+	
+	/**
+	 * @private
+	 */
+	_populateNotification (n) {
+		if (!('SERVER' in n.headers) && this.signature) {
+			n.headers.SERVER = this.signature;
+		}
+		
+		if (!('HOST' in n.headers)) {
+			n.headers.HOST = this._multicastAddress + ':' + this._multicastPort;
+		}
+		
+		return n;
+	}
+	
+	/** @private */
+	_populateSearchRequest (s) {
+		if (!('USER-AGENT' in s.headers) && this.signature) {
+			s.headers['USER-AGENT'] = this.signature;
+		}
+		
+		if (!('HOST' in s.headers)) {
+			s.headers.HOST = this._multicastAddress + ':' + this._multicastPort;
+		}
+		
+		return s;
+	}
 } // class
 
-export { Protocol };
+export default Protocol;

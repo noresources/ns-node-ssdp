@@ -6,6 +6,9 @@
 'use strict';
 import HeaderMapHandler from './HeaderMapHandler.mjs';
 
+/**
+ * Special search subject to query all devices and srevices
+ */
 export const SEARCH_ALL = 'ssdp:all';
 
 /**
@@ -13,8 +16,9 @@ export const SEARCH_ALL = 'ssdp:all';
 */
 export class SearchRequest {
 	/**
-	* @param {Object} properties - Notification properties
-	* @param {Object} headers - Custom message headers
+	* @param {object|string} properties - Request properties.
+	* 	If a {string} is given, assumes it represents the search subject.
+	* @param {object} headers - User-defined message header fields.
 	*/
 	constructor (properties, headers) {
 

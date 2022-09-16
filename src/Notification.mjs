@@ -11,7 +11,10 @@ import HeaderMapHandler from './HeaderMapHandler.mjs';
 * Corresponds to the NTS header field values.
 */
 export const TYPE = {
+	/** Advertise the device or service
+	* just appeard or is still alive */
 	'ALIVE': 'ssdp:alive',
+	/** Advertise the device or service will be offline */
 	'DEAD': 'ssdp:byebye'
 };
 
@@ -20,7 +23,8 @@ export const TYPE = {
 */
 export class Notification {
 	/**
-	* @param {Object} properties - Notification properties
+	* @param {Object} properties - Notification properties.
+	* Properties are shorthand for serveral HTTP header field values.
 	* @param {Object} headers - Custom message headers
 	*/
 	constructor (properties, headers) {

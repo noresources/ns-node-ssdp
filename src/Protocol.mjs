@@ -56,7 +56,11 @@ export class Protocol extends EventEmitter {
 		
 		this._persistentNotifications = {};
 		this._pendingSearches = [];
-		this._socket = null;
+		this._multicastSocket = null;
+		this._clientSocket = null;
+		this._messageListener = this._processMessage.bind(this);
+		this._multicastSocketReadyListener = this._handleMulticastSocketListening.bind(this);
+		
 	}
 	
 	/**
@@ -122,7 +126,7 @@ export class Protocol extends EventEmitter {
 		
 		if (!this.started) {
 			this._pendingSearches.push (s);
-			return Promise.resulve(null);
+			return Promise.resolve(null);
 		}
 		
 		return this._send (s.toString ());
@@ -210,7 +214,7 @@ export class Protocol extends EventEmitter {
 	* @returns {boolean}
 	*/
 	get started () {
-		return this._socket ? true : false;
+		return this._multicastSocket ? true : false;
 	}
 	
 	/**
@@ -220,12 +224,12 @@ export class Protocol extends EventEmitter {
 		if (this.started) {
 			throw new Error ('Already started');
 		}
-			
-		if (!this.socket) {
-			throw new Error ('Failed to create socket');
-		}
 		
-		this.socket.on ('message', this._processMessage.bind(this));
+		this._multicastSocket = dgram.createSocket({'type': 'udp4',
+			'reuseAddr': true });
+		this._multicastSocket.on ('listening', this._multicastSocketReadyListener);
+		this._multicastSocket.bind (this._multicastPort);
+		this._multicastSocket.on ('message', this._messageListener);
 
 		while (this._pendingSearches.length) {
 			const request = this._pendingSearches.shift();
@@ -270,24 +274,16 @@ export class Protocol extends EventEmitter {
 			await Promise.all (pending);
 		} catch (e) { /**/ }
 		
-		this._socket.close ();
-		this._socket = null;
-	}
-	
-	/**
-	* @private
-	*/
-	get socket () {
-		if (!this._socket) {
-			this._socket = dgram.createSocket({'type': 'udp4',
-				'reuseAddr': true });
-			this._socket.on ('listening', () => {
-				this._socket.addMembership(this._multicastAddress);
-			});
-			this._socket.bind (this._multicastPort);
+		if (this._clientSocket) {
+			this._clientSocket.off ('message', this._messageListener);
+			this._clientSocket.close();
+			this._clientSocket = null;
 		}
 		
-		return this._socket;
+		this._multicastSocket.off ('listening', this._multicastSocketReadyListener);
+		this._multicastSocket.off ('message', this._messageListener);
+		this._multicastSocket.close ();
+		this._multicastSocket = null;
 	}
 	
 	/**
@@ -305,8 +301,13 @@ export class Protocol extends EventEmitter {
 			port = target.port || port;
 		}
 		
+		if (!this._clientSocket) {
+			this._clientSocket = dgram.createSocket('udp4');
+			this._clientSocket.on ('message', this._messageListener);
+		}
+		
 		return new Promise ((resolve, reject) => {
-			this.socket.send (message, 0, message.length,
+			this._clientSocket.send (message, 0, message.length,
 				port, address, (e) => {
 					if (e) {
 						reject (e);
@@ -315,6 +316,11 @@ export class Protocol extends EventEmitter {
 					resolve ();
 				});
 		});
+	}
+	
+	/** @private */
+	_handleMulticastSocketListening() {
+		this._multicastSocket.addMembership(this._multicastAddress);
 	}
 	
 	/**

@@ -57,9 +57,7 @@ export class Notification {
 	} // constructor
 	
 	/**
-	* Get SSDP message text
-	*
-	* @returns {string}
+	* @return {string} - NOTIFY request message
 	*/
 	toString () {
 		const lines = ['NOTIFY * HTTP/1.1'];
@@ -73,7 +71,7 @@ export class Notification {
 	/**
 	* For internal use
 	*
-	* @returns {string}
+	* @return {string}
 	*/
 	get key () {
 		const lines = [];
@@ -86,7 +84,7 @@ export class Notification {
 	/**
 	* Get USN HTTP header field
 	*
-	* @returns {string}
+	* @return {string} - USN header field value
 	*/
 	get usn () {
 		return this.headers.USN;
@@ -104,7 +102,7 @@ export class Notification {
 	/**
 	* Get notification subject (HT HTTP header)
 	*
-	* @returns {string}
+	* @return {string} - Notification subject (HT HTTP header)
 	*/
 	get subject () {
 		return this.headers.NT;
@@ -122,7 +120,7 @@ export class Notification {
 	/**
 	* Get Notification type (HTS HTTP header)
 	*
-	* @returns {string}
+	* @return {string} - Notification type (HTS HTTP header)
 	*/
 	get type () {
 		return this.headers.NTS;
@@ -140,7 +138,7 @@ export class Notification {
 	/**
 	* Get notification timeout from Cache-Control HTTP header
 	*
-	* @returns {number} Notification timeout in milliseconds or NaN
+	* @return {number} - Notification timeout in milliseconds or NaN
 	*/
 	get interval () {
 		if (!('CACHE-CONTROL' in this.headers)) {

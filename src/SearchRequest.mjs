@@ -13,6 +13,8 @@ export const SEARCH_ALL = 'ssdp:all';
 
 /**
 * Search request descriptor
+*
+* Describe content of a M-SEARCH message
 */
 export class SearchRequest {
 	/**
@@ -60,7 +62,7 @@ export class SearchRequest {
 	/**
 	* Get SSDP message text
 	*
-	* @returns {string}
+	* @return {string} M-SEARCH message
 	*/
 	toString () {
 		const lines = ['M-SEARCH * HTTP/1.1'];
@@ -74,7 +76,7 @@ export class SearchRequest {
 	/**
 	* Get search request subject (ST HTTP header field)
 	*
-	* @returns {string}
+	* @return {string}
 	*/
 	get subject () {
 		return this.headers.ST;

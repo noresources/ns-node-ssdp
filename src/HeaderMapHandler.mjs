@@ -1,3 +1,8 @@
+/*
+ * Copyright © 2022 by Renaud Guillard (dev@nore.fr)
+ * Distributed under the terms of the MIT License, see LICENSE
+ */
+ 
 'use strict';
 export default {
 	has (o, p) {

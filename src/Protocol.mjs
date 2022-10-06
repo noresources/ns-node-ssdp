@@ -30,7 +30,13 @@ export const MULTICAST_SOCKET = {
 * SSDP protocol event type names
 */
 export const EVENT = {
+	/**
+	 * Service or device presence notification.
+	 * For multicast NOTIFY messages and
+	 * unicast search responses.
+	 */
 	'NOTIFICATION': 'notification',
+	/**Search request message (M-SEARCH) */
 	'SEARCH': 'search'
 };
 
@@ -136,7 +142,8 @@ export class Protocol extends EventEmitter {
 	* Create a new Notification to be used with this protocol
 	*
 	* @param {Array} arguments - Notification constructor arguments.
-	* @returns {Notification}
+	*
+	* @return {Notification} - A notification with pre-assigned header fields describing the protocol instance.
 	*/
 	createNotification () {
 		const n = new Notification (...arguments);
@@ -148,7 +155,7 @@ export class Protocol extends EventEmitter {
 	 *
 	 * @param {Array} arguments - SearchRequest constructor arguments.
 	 *
-	 * @returns {SearchRequest}
+	 * @return {SearchRequest} Search request with pre-defined header field describing the protocol instance.
 	 */
 	createSearchRequest () {
 		const s = new SearchRequest (...arguments);
@@ -158,7 +165,7 @@ export class Protocol extends EventEmitter {
 	/**
 	* Multicast socket IPv4 address
 	*
-	* @returns {string} Multicast address
+	* @return {string} - Multicast address
 	*/
 	get multicastAddress () {
 		return this._multicastAddress;
@@ -184,7 +191,7 @@ export class Protocol extends EventEmitter {
 	/**
 	 * Multicast socket port
 	 *
-	 * @returns {number} Multicast port
+	 * @return {number} - Multicast port
 	 */
 	get multicastPort() {
 		return this._multicastPort;
@@ -211,7 +218,7 @@ export class Protocol extends EventEmitter {
 	/**
 	* Indicates if the protocol is started
 	*
-	* @returns {boolean}
+	* @return {boolean} true is protocol is started
 	*/
 	get started () {
 		return this._multicastSocket ? true : false;

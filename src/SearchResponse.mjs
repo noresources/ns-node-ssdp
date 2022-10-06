@@ -43,9 +43,7 @@ export class SearchResponse {
 	} // constructor
 	
 	/**
-	* Get SSDP message text
-	*
-	* @returns {string}
+	* @return {string} - HTTP 200 OK message string
 	*/
 	toString () {
 		const lines = ['HTTP/1.1 200 OK'];
@@ -59,13 +57,15 @@ export class SearchResponse {
 	/**
 	* Get search response subject (ST HTTP header field)
 	*
-	* @returns {string}
+	* @return {string} - Search response subject (ST HTTP header field)
 	*/
 	get subject () {
 		return this.headers.ST;
 	}
 
 	/**
+	* Set the search response subject (ST HTTP header field)
+	*
 	* @param {string} value - ST header field value
 	*/
 	set subject (value) {
@@ -73,15 +73,17 @@ export class SearchResponse {
 	}
 	
 	/**
-	* Get service USN (S and USN HTTP header field)
+	* Get service or device USN (S and USN HTTP header field)
 	*
-	* @returns {string}
+	* @return {string} - Service or device USN (S and USN HTTP header field)
 	*/
 	get usn () {
 		return this.headers.USN;
 	}
 
 	/**
+	* Set service USN (S and USN HTTP header field)
+	*
 	* @param {string} value - USN and S header field value
 	*/
 	set usn (value) {
@@ -90,4 +92,4 @@ export class SearchResponse {
 	}
 }
 
-export default  SearchResponse;
+export default SearchResponse;

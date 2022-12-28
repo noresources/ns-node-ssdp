@@ -8,7 +8,7 @@
 
 const PACKAGE = {
 	'NAME': 'ns-node-ssdp',
-	'VERSION': '0.3.0'
+	'VERSION': '0.3.1'
 	
 };
 export { PACKAGE };

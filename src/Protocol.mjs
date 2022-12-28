@@ -8,13 +8,15 @@ import { EventEmitter } from 'events';
 import { Notification, TYPE } from './Notification.mjs';
 import { SearchRequest, SEARCH_ALL } from './SearchRequest.mjs';
 import { SearchResponse } from './SearchResponse.mjs';
-
 import PACKAGE from './Package.mjs';
 import dgram from 'dgram';
 import ip from 'ip';
 
 const REQUEST_PATTERN = /^([a-z-]+)\s(.+?)\sHTTP\/[0-9]+\.[0-9]+$/i;
 const RESPONSE_PATTERN = /HTTP\/[0-9]+\.[0-9]\s([0-9]+)\s.*/i;
+const deepCopy = function (o) {
+	return JSON.parse (JSON.stringify(o));
+};
 
 /**
 * Default SSDP multicast address and port
@@ -273,7 +275,7 @@ export class Protocol extends EventEmitter {
 			
 			const bye = new Notification ({
 				'type': TYPE.DEAD
-			}, pn.notification.headers);
+			}, deepCopy(pn.notification.headers));
 			pending.push (this._send (bye));
 		}
 		
@@ -367,7 +369,7 @@ export class Protocol extends EventEmitter {
 					const response = new SearchResponse({
 						'subject': pn.notification.subject,
 						'usn': pn.notification.usn
-					}, pn.notification.headers);
+					}, deepCopy(pn.notification.headers));
 					delete response.headers.NT;
 					delete response.headers.NTS;
 					this._send(response.toString(), emitter);

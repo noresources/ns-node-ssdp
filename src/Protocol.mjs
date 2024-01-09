@@ -12,6 +12,13 @@ import PACKAGE from './Package.mjs';
 import dgram from 'dgram';
 import ip from 'ip';
 
+const MULTICAST_STATE = {
+	// Socket is ready
+	'READY': 0x01,
+	// Membership added
+	'MEMBER': 0x02
+};
+
 const REQUEST_PATTERN = /^([a-z-]+)\s(.+?)\sHTTP\/[0-9]+\.[0-9]+$/i;
 const RESPONSE_PATTERN = /HTTP\/[0-9]+\.[0-9]\s([0-9]+)\s.*/i;
 const deepCopy = function (o) {
@@ -59,6 +66,8 @@ export class Protocol extends EventEmitter {
 		this.signature = 'Node.js/' + nodeVersion + ' SSDP/1.0.3'
 			 		+ ' ' + PACKAGE.NAME + '/' + PACKAGE.VERSION;
 		
+		this._multicastState = 0;
+		this._multicastMembershipInterval = null;
 		this.multicastAddress = address || MULTICAST_SOCKET.DEFAULT_ADDRESS;
 		this.multicastPort = port || MULTICAST_SOCKET.DEFAULT_PORT;
 		
@@ -104,19 +113,21 @@ export class Protocol extends EventEmitter {
 			};
 			
 			if (this.started) {
-				pn.interval = setInterval (() => {
-					this._send (pn.message);
+				pn.interval = setInterval (async () => {
+					try {
+						await this._send (pn.message);
+					} catch (e) { /* Ignore */ }
 				}, interval - (interval * 0.1));
 			}
 			
 			this._persistentNotifications[key] = pn;
 		}
 		
-		if (this.started) {
+		if (this.started && this._multicastReady) {
 			return this._send (n.toString());
 		}
 		
-		return Promise.resolve (null);
+		return null;
 	}
 	
 	/**
@@ -132,9 +143,9 @@ export class Protocol extends EventEmitter {
 			s = this.createSearchRequest ({}, what.headers);
 		}
 		
-		if (!this.started) {
+		if (!(this.started && this._multicastReady)) {
 			this._pendingSearches.push (s);
-			return Promise.resolve(null);
+			return;
 		}
 		
 		return this._send (s.toString ());
@@ -240,16 +251,15 @@ export class Protocol extends EventEmitter {
 		this._multicastSocket.bind (this._multicastPort);
 		this._multicastSocket.on ('message', this._messageListener);
 
-		while (this._pendingSearches.length) {
-			const request = this._pendingSearches.shift();
-			this._send (request.toString ());
-		}
-		
 		for (const key in this._persistentNotifications) {
 			const pn = this._persistentNotifications[key];
 			const interval = pn.notification.interval;
-			pn.interval = setInterval (() => {
-				this._send (pn.message);
+			pn.interval = setInterval (async () => {
+				try {
+					this._send (pn.message);
+				} catch (e) {
+					console.error ('notif error', e.message);
+				}
 			}, interval - (interval * 0.1));
 				
 			this._send (pn.message);
@@ -261,6 +271,12 @@ export class Protocol extends EventEmitter {
 	* and notify control points that registered service are no more available
 	*/
 	async stop () {
+	
+		if (this._multicastMembershipInterval) {
+			clearInterval (this._multicastMembershipInterval);
+			this._multicastMembershipInterval = null;
+		}
+	
 		if (!this.started) {
 			return;
 		}
@@ -293,6 +309,11 @@ export class Protocol extends EventEmitter {
 		this._multicastSocket.off ('message', this._messageListener);
 		this._multicastSocket.close ();
 		this._multicastSocket = null;
+	}
+	
+	get _multicastReady () {
+		const required = MULTICAST_STATE.READY | MULTICAST_STATE.MEMBER;
+		return ((this._multicastState & required) == required);
 	}
 	
 	/**
@@ -328,8 +349,49 @@ export class Protocol extends EventEmitter {
 	}
 	
 	/** @private */
-	_handleMulticastSocketListening() {
-		this._multicastSocket.addMembership(this._multicastAddress);
+	async _handleMulticastSocketListening() {
+	
+		let success = await this._tryAddMembership ();
+		this._multicastState |= MULTICAST_STATE.READY;
+		if (success) {
+			return;
+		}
+		let trying = false;
+		this._multicastMembershipInterval = setInterval (async () => {
+			if (trying) {
+				return;
+			}
+			trying = true;
+			success = await this._tryAddMembership ();
+			if (success) {
+				clearInterval (this._multicastMembershipInterval);
+				this._multicastMembershipInterval = null;
+				return;
+			}
+			trying = false;
+		}, 5000);
+	}
+	
+	/**
+	* @private
+	*/
+	async _tryAddMembership () {
+		let result = false;
+		try {
+			await this._multicastSocket.addMembership(this._multicastAddress);
+			this._multicastState |= MULTICAST_STATE.MEMBER;
+			result = true;
+			
+			const s = [];
+			while (this._pendingSearches.length) {
+				const request = this._pendingSearches.shift();
+				s.push (this._send (request.toString ()));
+			}
+			await Promise.all (s);
+		} catch (e) {
+			/* */
+		}
+		return result;
 	}
 	
 	/**

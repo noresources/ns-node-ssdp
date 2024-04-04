@@ -49,6 +49,11 @@ export const EVENT = {
 	'SEARCH': 'search'
 };
 
+const PERSISTENT_NOTIFICATION_FLAGS = {
+	// Notification was sent at least once
+	'INITIALIZED': 0x01
+};
+
 /**
 * SSDP protocol implementation
 *
@@ -85,49 +90,52 @@ export class Protocol extends EventEmitter {
 	*
 	* @param {Notification} notification - Notification to send
 	* @param {boolean} persist - If true, the notification will be re-send automatically according notification interval value
+	* @return {Promise} - Resolved when notification was sent or false
 	*/
-	notify (notification, persist) {
+	async notify (notification, persist) {
 		const key = notification.key;
 		if (notification.type == TYPE.DEAD && (key in this._persistentNotifications)) {
-			clearInterval (this._persistentNotifications[key].interval);
-			delete this._persistentNotifications[key];
+			this._stopPersistentNotification (this._persistentNotifications[key]);
 		}
 		
 		const n = this.createNotification ({}, notification.headers);
+
+		if (!(persist && n.type == TYPE.ALIVE)) {
+			if (this.started && this._multicastReady) {
+				return this._send (n.toString());
+			}
+		}
 		
-		if (persist && n.type == TYPE.ALIVE) {
-			const interval = n.interval;
-			if (isNaN(interval) || interval < 1000)  {
-				n.interval = 30000;
-			}
+		const interval = n.interval;
+		if (isNaN(interval) || interval < 1000)  {
+			n.interval = 30000;
+		}
 			
-			if (key in this._persistentNotifications) {
-				clearInterval (this._persistentNotifications[key].interval);
-				this._persistentNotifications[key].interval = null;
-			}
+		if (key in this._persistentNotifications) {
+			this._stopPersistentNotification (this._persistentNotifications[key]);
+		}
 			
-			const message = n.toString();
-			const pn = {
-				'notification': notification,
-				'message': Buffer.alloc(message.length, message, 'ascii'),
-			};
+		const message = n.toString();
+		const pn = {
+			'notification': notification,
+			'state': 0,
+			'message': Buffer.alloc(message.length, message, 'ascii'),
+		};
 			
-			if (this.started) {
-				pn.interval = setInterval (async () => {
-					try {
-						await this._send (pn.message);
-					} catch (e) { /* Ignore */ }
-				}, interval - (interval * 0.1));
-			}
+		this._persistentNotifications[key] = pn;
 			
-			this._persistentNotifications[key] = pn;
+		if (this.started) {
+			this._startPersistentNotification(pn);
 		}
 		
 		if (this.started && this._multicastReady) {
-			return this._send (n.toString());
+			if (await this._trySend (pn.message)) {
+				pn.state |= PERSISTENT_NOTIFICATION_FLAGS.INITIALIZED;
+				return true;
+			}
 		}
 		
-		return null;
+		return false;
 	}
 	
 	/**
@@ -240,7 +248,7 @@ export class Protocol extends EventEmitter {
 	/**
 	* Start listening SSDP message and emit pending messages.
 	*/
-	start () {
+	async start () {
 		if (this.started) {
 			throw new Error ('Already started');
 		}
@@ -250,20 +258,6 @@ export class Protocol extends EventEmitter {
 		this._multicastSocket.on ('listening', this._multicastSocketReadyListener);
 		this._multicastSocket.bind (this._multicastPort);
 		this._multicastSocket.on ('message', this._messageListener);
-
-		for (const key in this._persistentNotifications) {
-			const pn = this._persistentNotifications[key];
-			const interval = pn.notification.interval;
-			pn.interval = setInterval (async () => {
-				try {
-					this._send (pn.message);
-				} catch (e) {
-					console.error ('notif error', e.message);
-				}
-			}, interval - (interval * 0.1));
-				
-			this._send (pn.message);
-		}
 	} // start
 	
 	/**
@@ -284,10 +278,7 @@ export class Protocol extends EventEmitter {
 		const pending = [];
 		for (const key in this._persistentNotifications) {
 			const pn = this._persistentNotifications[key];
-			if (pn.interval) {
-				clearInterval (pn.interval);
-				pn.interval = null;
-			}
+			this._stopPersistentNotification(pn);
 			
 			const bye = new Notification ({
 				'type': TYPE.DEAD
@@ -314,6 +305,15 @@ export class Protocol extends EventEmitter {
 	get _multicastReady () {
 		const required = MULTICAST_STATE.READY | MULTICAST_STATE.MEMBER;
 		return ((this._multicastState & required) == required);
+	}
+	
+	/** @private */
+	async _trySend (message, target) {
+		try {
+			await this._send (message, target);
+			return true;
+		} catch (e) {/*Ignored*/}
+		return false;
 	}
 	
 	/**
@@ -382,6 +382,17 @@ export class Protocol extends EventEmitter {
 			this._multicastState |= MULTICAST_STATE.MEMBER;
 			result = true;
 			
+			const uninitialized = Object.values (this._persistentNotifications)
+				.filter (pn => ((pn.state & PERSISTENT_NOTIFICATION_FLAGS.INITIALIZED) == 0));
+
+			uninitialized.forEach (async (pn) => {
+				this._stopPersistentNotification (pn);
+				if (await this._trySend (pn.message)) {
+					pn.state |= PERSISTENT_NOTIFICATION_FLAGS.INITIALIZED;
+				}
+				this._startPersistentNotification (pn);
+			});
+
 			const s = [];
 			while (this._pendingSearches.length) {
 				const request = this._pendingSearches.shift();
@@ -525,6 +536,23 @@ export class Protocol extends EventEmitter {
 		
 		return s;
 	}
-} // class
+	
+	_stopPersistentNotification (pn) {
+		if (!pn.interval) {
+			return;
+		}
+		clearInterval (pn.interval);
+		delete pn.interval;
+	}
+	
+	_startPersistentNotification (pn) {
+		const interval = pn.notification.interval;
+		pn.interval = setInterval (async () => {
+			if (await this._trySend (pn.message)) {
+				pn.state |= PERSISTENT_NOTIFICATION_FLAGS.INITIALIZED;
+			}
+		}, interval - (interval * 0.1));
+	}
+} // Protocol class
 
 export default Protocol;

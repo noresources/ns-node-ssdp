@@ -5,6 +5,12 @@ This project aims to provide a "pure" SSDP implementation.
 It can be used as a base for UPnP service discovery protocol
 implementation but also for vendor specific protocols.
 
+## Installation
+
+```
+npm install --save github:noresources/ns-node-ssdp
+```
+
 ## Examples
 
 ### Advertise

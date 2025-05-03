@@ -2,10 +2,8 @@
 import { test } from 'tape';
 import { Notification } from '../../index.mjs';
 
-test('Constructor', async function (t) {
-	const dflt = new Notification({}, {
-		'FOO': 'bar ?'
-	});
+test('Default constructor', async function (t) {
+	const dflt = new Notification();
 	t.true (dflt instanceof Notification, '...');
 	let undef;
 	const expected = {
@@ -18,6 +16,24 @@ test('Constructor', async function (t) {
 		t.equal (dflt[property], expected[property], 'Default ' + property + ' value');
 	}
 	t.end();
+});
+
+test('Constructor', async function (t) {
+	const withHeaders = new Notification (undefined,
+		{'FOO': 'bar'}
+	);
+	t.true ('FOO' in withHeaders.headers, 'FOO header exists');
+	t.true ('foo' in withHeaders.headers, 'FOO header exists');
+	t.false ('BAR' in withHeaders.headers, 'BAR header does not exists');
+	
+	t.ok ('Deleting header with lowercase name');
+	delete withHeaders.headers.foo;
+	t.false ('FOO' in withHeaders.headers, 'FOO does not exists anymore');
+	
+	t.ok ('Deleting non-existing header (no-op)');
+	delete withHeaders.headers.bar;
+	
+	t.end ();
 });
 
 test('Update interval', async function (t) {
@@ -40,10 +56,6 @@ test('Headers', async function (t) {
 	
 	t.true ('server' in n.headers, 'Has header');
 	t.true ('SERVER' in n.headers, 'Has header (case insensitive)');
-	
-	t.true ('foo' in n.headers, 'Has FOO header')
-	delete n.headers.fOo
-	t.false ('foo' in n.headers, 'FOO header deleted')
 	
 	t.end();
 });

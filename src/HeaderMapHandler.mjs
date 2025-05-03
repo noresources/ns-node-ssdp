@@ -74,6 +74,6 @@ export default {
 				return Reflect.deleteProperty (o, h);
 			}
 		}
-		return false;
+		return true;
 	} // deleteProperty
 };

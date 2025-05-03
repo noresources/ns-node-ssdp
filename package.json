@@ -1,6 +1,6 @@
 {
 	"name": "ns-node-ssdp", 
-	"version": "0.3.2", 
+	"version": "0.3.4", 
 	"description": "SSDP protocol implementation", 
 	"main": "index.mjs", 
 	"scripts": {

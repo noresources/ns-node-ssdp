@@ -6,7 +6,7 @@
 	"scripts": {
 		"test": "tape tests/tape/*.mjs", 
 		"doc": "jsdoc --recurse -c resources/jsdoc/configuration.json --destination doc src/", 
-		"lint": "eslint -c resources/eslint/configuration.json --fix src/*.mjs", 
+		"lint": "eslint -c resources/eslint/configuration.mjs --fix src/*.mjs", 
 		"update-package-info": "node tools/update-package-info.mjs "
 	}, 
 	"keywords": [

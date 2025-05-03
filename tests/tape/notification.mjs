@@ -3,7 +3,9 @@ import { test } from 'tape';
 import { Notification } from '../../index.mjs';
 
 test('Constructor', async function (t) {
-	const dflt = new Notification();
+	const dflt = new Notification({}, {
+		'FOO': 'bar ?'
+	});
 	t.true (dflt instanceof Notification, '...');
 	let undef;
 	const expected = {
@@ -38,6 +40,10 @@ test('Headers', async function (t) {
 	
 	t.true ('server' in n.headers, 'Has header');
 	t.true ('SERVER' in n.headers, 'Has header (case insensitive)');
+	
+	t.true ('foo' in n.headers, 'Has FOO header')
+	delete n.headers.fOo
+	t.false ('foo' in n.headers, 'FOO header deleted')
 	
 	t.end();
 });

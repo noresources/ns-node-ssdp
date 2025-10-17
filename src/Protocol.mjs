@@ -4,14 +4,19 @@
  */
  
 'use strict';
-import { EventEmitter } from 'events';
+
 import { Notification, TYPE } from './Notification.mjs';
 import { SearchRequest, SEARCH_ALL } from './SearchRequest.mjs';
 import { SearchResponse } from './SearchResponse.mjs';
 import PACKAGE from './Package.mjs';
+
+import { EventEmitter } from 'events';
 import dgram from 'dgram';
 import ip from 'ip';
 
+/**
+ * State of mulsticast socket
+ */
 const MULTICAST_STATE = {
 	// Socket is ready
 	'READY': 0x01,
@@ -62,7 +67,7 @@ const PERSISTENT_NOTIFICATION_FLAGS = {
 export class Protocol extends EventEmitter {
 	/**
 	* @param {string} address - SSDP multicast address
-	* @param {integer} port - SSDP multicast port
+	* @param {number} port - SSDP multicast port
 	*/
 	constructor (address, port) {
 		super();
@@ -90,6 +95,7 @@ export class Protocol extends EventEmitter {
 	*
 	* @param {Notification} notification - Notification to send
 	* @param {boolean} persist - If true, the notification will be re-send automatically according notification interval value
+	
 	* @return {Promise} - Resolved when notification was sent or false
 	*/
 	async notify (notification, persist) {
@@ -302,6 +308,9 @@ export class Protocol extends EventEmitter {
 		this._multicastSocket = null;
 	}
 	
+	/**
+	 * @private
+	 */
 	get _multicastReady () {
 		const required = MULTICAST_STATE.READY | MULTICAST_STATE.MEMBER;
 		return ((this._multicastState & required) == required);

@@ -4,7 +4,11 @@
  */
  
 'use strict';
-export default {
+
+/**
+ * A Proxy handler to manage a case-insensitive HTTP header map
+ */
+export const HeaderMappingHandler = {
 	has (o, p) {
 		if (Reflect.has(o, p)) {
 			return true;
@@ -77,3 +81,5 @@ export default {
 		return true;
 	} // deleteProperty
 };
+
+export default HeaderMappingHandler;

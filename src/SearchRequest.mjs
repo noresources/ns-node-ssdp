@@ -18,7 +18,7 @@ export const SEARCH_ALL = 'ssdp:all';
 */
 export class SearchRequest {
 	/**
-	* @param {object|string} properties - Request properties.
+	* @param {object|string} properties - Request properties. See {@link Notification} constructor for details.
 	* 	If a {string} is given, assumes it represents the search subject.
 	* @param {object} headers - User-defined message header fields.
 	*/

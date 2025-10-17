@@ -25,6 +25,10 @@ export class Notification {
 	/**
 	* @param {Object} properties - Notification properties.
 	* Properties are shorthand for serveral HTTP header field values.
+	* @param {string} [properties.type] - Notification type. One of the {@link TYPE} values.
+	* @param {string}  [properties.subject] - Notification subject (HT HTTP header)
+	* @param {string} [properties.usn] - USN header field value
+	* @param {number} [properties.interval] - Notification timeout in milliseconds or NaN
 	* @param {Object} headers - Custom message headers
 	*/
 	constructor (properties, headers) {

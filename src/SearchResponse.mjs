@@ -11,8 +11,8 @@ import HeaderMapHandler from './HeaderMapHandler.mjs';
 */
 export class SearchResponse {
 	/**
-	* @param {Object} properties - Notification properties
-	* @param {Object} headers - Custom message headers
+	* @param {Object} properties - Notification properties. See {@link Notification} constructor for details.
+	* @param {Object} headers - Custom message headers.
 	*/
 	constructor (properties, headers) {
 

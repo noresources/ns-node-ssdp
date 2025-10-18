@@ -7,8 +7,8 @@
 'use strict';
 
 export const PACKAGE = {
-	'NAME': 'ns-node-ssdp',
-	'VERSION': '0.3.4'
+	'NAME': 'noresources-node-ssdp',
+	'VERSION': '0.4.0'
 	
 };
 

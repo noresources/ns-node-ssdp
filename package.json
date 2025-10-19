@@ -25,7 +25,9 @@
 		"ip": "^2.0.1"
 	},
 	"files": [
-		"package.mjs"
+		"package.mjs",
+		"index.mjs",
+		"index.cjs"
 	],
 	"exports": {
 		".": [

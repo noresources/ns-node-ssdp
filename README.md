@@ -1,4 +1,6 @@
-# ns-node-ssdp
+@noresources/ssdp
+================================================
+
 SSDP protocol implementation for Node.js
 
 This project aims to provide a "pure" SSDP implementation.
@@ -8,7 +10,7 @@ implementation but also for vendor specific protocols.
 ## Installation
 
 ```
-npm install --save github:noresources/ns-node-ssdp
+npm install --save @noresources/ssdp
 ```
 
 ## Examples
@@ -17,7 +19,8 @@ npm install --save github:noresources/ns-node-ssdp
 
 ```javascript
 
-import { Protocol, Notification } from "ns-node-ssdp"
+import { Notification } from "@noresources/ssdp"
+import { Protocol } from "@noresources/ssdp/platform/node"
 
 const protocol = new Protocol()
 
@@ -33,7 +36,7 @@ const notification = new Notification ({
 
 // Add a UPnP-compliant LOCATION header field
 // (not mandatory for SSDP)
-notification.headers.LOCATION = 'http://10.11.12.13:1234/description.xml";
+notification.headers.LOCATION = 'http://10.11.12.13:1234/description.xml';
 
 protocol.notify (notification, true)
 
@@ -47,12 +50,12 @@ process.on ("exit", () => {
 ### Search and watch
 
 ```javascript
-import { Protocol, SearchRequest } from "ns-node-ssdp"
+import { Protocol, SearchRequest } from "@noresources/ssdp"
 
 const protocol = new Protocol()
 const SERVICE = "urn:schemas-nore-fr:service:Example:1"
 
-protocol.on ("notification", (e) {
+protocol.on ("notification", (e) => {
 	const n = e.notification
 	if (n.subject == SERVICE)
 		console.log ("Found", n.usn)
@@ -63,6 +66,8 @@ const search = new SearchRequest ({
 })
 
 protocol.search (search)
+
+protocol.start()
 
 ```
 

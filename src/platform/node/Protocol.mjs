@@ -5,10 +5,10 @@
  
 'use strict';
 
-import { Notification, TYPE } from './Notification.mjs';
-import { SearchRequest, SEARCH_ALL } from './SearchRequest.mjs';
-import { SearchResponse } from './SearchResponse.mjs';
-import PACKAGE from './Package.mjs';
+import { Notification, TYPE } from '../../Notification.mjs';
+import { SearchRequest, SEARCH_ALL } from '../../SearchRequest.mjs';
+import { SearchResponse } from '../../SearchResponse.mjs';
+import PACKAGE from '../../../package.mjs';
 
 import { EventEmitter } from 'events';
 import dgram from 'dgram';
@@ -73,8 +73,9 @@ export class Protocol extends EventEmitter {
 		super();
 
 		const nodeVersion = process.version.substr(1);
+		const packageName = PACKAGE.name.replace(/[^\w]/g, '-').replace (/^-+/, '').replace (/-+$/g, '')
 		this.signature = 'Node.js/' + nodeVersion + ' SSDP/1.0.3'
-			 		+ ' ' + PACKAGE.NAME + '/' + PACKAGE.VERSION;
+			 		+ ' ' + packageName + '/' + PACKAGE.VERSION;
 		
 		this._multicastState = 0;
 		this._multicastMembershipInterval = null;

@@ -27,7 +27,8 @@
 	"files": [
 		"package.mjs",
 		"index.mjs",
-		"index.cjs"
+		"index.cjs",
+		"src"
 	],
 	"exports": {
 		".": [
